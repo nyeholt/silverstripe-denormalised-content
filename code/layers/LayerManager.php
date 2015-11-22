@@ -7,8 +7,10 @@ class LayerManager
 {
     const FIELD_SEPARATOR = '__';
 
-    protected static $_cache_db        = array();
-    protected static $_cache_layers_db = array();
+    protected static $_cache_db          = array();
+    protected static $_cache_rels        = array();
+    protected static $_cache_layers_db   = array();
+    protected static $_cache_layers_rels = array();
 
     public static function layer_db($classType, $layerName, $fieldName = null)
     {
@@ -32,11 +34,11 @@ class LayerManager
                     $dbItems[$layerName.self::FIELD_SEPARATOR.$key] = $val;
                 }
 
+                // check for any contained layers in the class, and load for them too
                 $layersDb = self::db_for_layers($class);
                 foreach ($layersDb as $lName => $lTitle) {
                     $dbItems[$layerName.self::FIELD_SEPARATOR.$lName] = $lTitle;
                 }
-
 
                 self::$_cache_db[$cacheKey] = $dbItems;
             }
@@ -56,19 +58,47 @@ class LayerManager
 
             $items = isset($items) ? array_merge((array) $items, $dbItems) : $dbItems;
         }
-
-        return $items;
+        if (!$fieldName) {
+            return $items;
+        }
     }
 
     public static function layer_relationships($classType, $layerName, $fieldName = null)
     {
+        $cacheKey = $classType.'_'.$layerName;
+
+        if (isset(self::$_cache_rels[$cacheKey])) {
+            return self::$_cache_rels[$cacheKey];
+        }
+
+        $allRels = array('has_one' => array(), 'many_many' => array());
+
         // and now, add in those from any related items
-        $related = Config::inst()->get($class, 'virtual_relations', Config::UNINHERITED);
+        $related = Config::inst()->get($classType, 'virtual_has_one');
         if ($related) {
-            foreach ($related as $rel) {
-                
+            foreach ($related as $name => $relatedType) {
+                $allRels['has_one'][$layerName.self::FIELD_SEPARATOR.$name] = $relatedType;
             }
         }
+
+        $related = Config::inst()->get($classType, 'virtual_many_many');
+        if ($related) {
+            foreach ($related as $name => $relatedType) {
+                $allRels['many_many'][$layerName.self::FIELD_SEPARATOR.$name] = $relatedType;
+            }
+        }
+
+        $inner = self::rels_for_layers($classType);
+        foreach ($inner['has_one'] as $name => $relatedType) {
+            $allRels['has_one'][$layerName.self::FIELD_SEPARATOR.$name] = $relatedType;
+        }
+        foreach ($inner['many_many'] as $name => $relatedType) {
+            $allRels['many_many'][$layerName.self::FIELD_SEPARATOR.$name] = $relatedType;
+        }
+
+
+        self::$_cache_rels[$cacheKey] = $allRels;
+        return $allRels;
     }
 
     public static function db_for_layers($type)
@@ -88,6 +118,33 @@ class LayerManager
 
         self::$_cache_layers_db[$type] = $fields;
         return $fields;
+    }
+
+    public static function rels_for_layers($type)
+    {
+        if (is_object($type)) {
+            $type = get_class($type);
+        }
+        if (isset(self::$_cache_layers_rels[$type])) {
+            return self::$_cache_layers_rels[$type];
+        }
+        $layers = self::layers_for($type);
+        $rels = array('has_one' => array(), 'many_many' => array());
+
+        foreach ($layers as $l) {
+            $ones = $l->has_one();
+            foreach ($ones as $name => $relatedType) {
+                $rels['has_one'][$name] = $relatedType;
+            }
+
+            $many = $l->many_many();
+            foreach ($many as $name => $relatedType) {
+                $rels['many_many'][$name] = $relatedType;
+            }
+        }
+
+        self::$_cache_layers_rels[$type] = $rels;
+        return $rels;
     }
 
     public static function layers_for($type)

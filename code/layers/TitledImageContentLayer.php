@@ -9,7 +9,7 @@ class TitledImageContentLayer extends ContentLayer
         'URLText' => 'Varchar',
         'URL' => 'Varchar',
     );
-    private static $virtual_relations = array(
+    private static $virtual_has_one = array(
         'Image' => 'Image',
     );
 }

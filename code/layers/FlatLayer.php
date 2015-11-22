@@ -11,8 +11,8 @@ class FlatLayer extends ViewableData
         'Title' => 'Varchar(255)',
     );
     private static $virtual_layers = array();
-    private static $virtual_relations = array(
-    );
+    private static $virtual_has_one = array();
+    private static $virtual_many_many = array();
 
     public function __construct($name)
     {
@@ -30,9 +30,25 @@ class FlatLayer extends ViewableData
         return LayerManager::layer_db(get_class($this), $this->name, $fieldName);
     }
 
-    public function has_one()
+    public function has_one($component = null)
     {
-        return array();
+        $spec = LayerManager::layer_relationships(get_class($this), $this->name);
+        $rels = $spec['has_one'];
+
+        if ($component && isset($rels[$component])) {
+            return $rels[$component];
+        }
+        return $rels;
+    }
+
+    public function many_many($component = null) {
+        $spec = LayerManager::layer_relationships(get_class($this), $this->name);
+        $rels = $spec['many_many'];
+
+        if ($component && isset($rels[$component])) {
+            return $rels[$component];
+        }
+        return $rels;
     }
 
     public function setConfig($name, $value)
