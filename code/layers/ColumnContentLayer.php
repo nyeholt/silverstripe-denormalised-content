@@ -7,6 +7,6 @@
 class ColumnContentLayer extends FlatLayer
 {
     private static $virtual_layers = array(
-        'ContentColumns'    => 'TitledImageContentLayer'
+        'ContentColumns'    => array('type' => 'TitledImageContentLayer', 'number' => 3)
     );
 }
