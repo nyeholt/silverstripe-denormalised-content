@@ -12,6 +12,7 @@ class FlatLayer extends ViewableData
     private static $virtual_layers    = array();
     private static $virtual_has_one   = array();
     private static $virtual_many_many = array();
+    
     protected $dataSource             = null;
     protected $name;
     protected $config                 = array();
@@ -24,6 +25,10 @@ class FlatLayer extends ViewableData
         $this->realisedName = $name;
         $this->dataSource   = $dataSource;
         parent::__construct();
+    }
+
+    public function getSource() {
+        return $this->dataSource;
     }
 
     public function getLayers()
@@ -86,6 +91,10 @@ class FlatLayer extends ViewableData
     {
         $bits = explode(LayerManager::FIELD_SEPARATOR, $field);
         return array_pop($bits);
+    }
+
+    public function forTemplate() {
+        return $this->renderWith(array(get_class($this), 'FlatLayer'));
     }
 
     /**

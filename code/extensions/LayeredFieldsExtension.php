@@ -17,11 +17,30 @@ class LayeredFieldsExtension extends DataExtension {
             if ($this->owner && $this->owner->ID) {
 
             }
+
+            if (!$this->layers) {
+                $this->layers = ArrayList::create();
+            }
         }
 
         return $this->layers;
-        
-        return $allLayers;
+    }
+
+    public function ShowLayers() {
+        $out = '';
+        foreach ($this->getLayers() as $l) {
+            $out .= $l->forTemplate();
+        }
+        return $out;
+    }
+
+    public function getLayer($layer) {
+        $all = $this->getLayers();
+        foreach ($all as $l) {
+            if ($l->getFriendlyName() == $layer) {
+                return $layer;
+            }
+        }
     }
 
     public function updateCMSFields(\FieldList $fields)
@@ -32,4 +51,5 @@ class LayeredFieldsExtension extends DataExtension {
             $fields->addFieldsToTab('Root.' . $l->getFriendlyName(), $l->getCMSFields());
         }
     }
+    
 }
