@@ -12,16 +12,19 @@ class LayerManager
     protected static $_cache_layers_db   = array();
     protected static $_cache_layers_rels = array();
 
-    public static function init_layers($classType)
+    public static function init_layers()
     {
-        $extraDb            = LayerManager::db_for_layers($classType);
-        Config::inst()->update($classType, 'db', $extraDb);
-        $extraRels          = LayerManager::rels_for_layers($classType);
-        if (count($extraRels['has_one'])) {
-            Config::inst()->update($classType, 'has_one', $extraRels['has_one']);
-        }
-        if (count($extraRels['many_many'])) {
-            Config::inst()->update($classType, 'many_many', $extraRels['many_many']);
+        $allTypes = func_get_args();
+        foreach ($allTypes as $classType) {
+            $extraDb   = LayerManager::db_for_layers($classType);
+            Config::inst()->update($classType, 'db', $extraDb);
+            $extraRels = LayerManager::rels_for_layers($classType);
+            if (count($extraRels['has_one'])) {
+                Config::inst()->update($classType, 'has_one', $extraRels['has_one']);
+            }
+            if (count($extraRels['many_many'])) {
+                Config::inst()->update($classType, 'many_many', $extraRels['many_many']);
+            }
         }
     }
 
@@ -159,15 +162,29 @@ class LayerManager
         return $rels;
     }
 
-    public static function layers_for($type)
+    /**
+     *
+     * @param type $type
+     * @param DataObject $context
+     *          The data object that actually contains the layers' content
+     * @return type
+     */
+    public static function layers_for($type, $context = null)
     {
+        $parentLayer = null;
         if (is_object($type)) {
+            if ($type instanceof FlatLayer) {
+                $parentLayer = $type;
+            }
+            if (!$context && $type instanceof DataObject) {
+                $context = $type;
+            }
             $type = get_class($type);
         }
         $layers = ArrayList::create();
         $def    = Config::inst()->get($type, 'virtual_layers');
         if ($def) {
-            foreach (Config::inst()->get($type, 'virtual_layers') as $id => $config) {
+            foreach ($def as $id => $config) {
                 if (!is_array($config)) {
                     $config = array('type' => $config);
                 }
@@ -180,7 +197,10 @@ class LayerManager
                 $type = $config['type'];
                 for ($i = 1; $i <= $config['number']; $i++) {
                     $layerName = $config['name'].'_'.$i;
-                    $layer     = $type::create($layerName);
+                    $layer     = $type::create($layerName, $context);
+                    if ($parentLayer) {
+                        $layer->setRealisedName($parentLayer->getRealisedName() . self::FIELD_SEPARATOR . $layerName);
+                    }
                     $layers->push($layer);
                 }
             }
@@ -196,9 +216,6 @@ class LayerManager
         $fullList = FieldList::create();
         foreach ($layers as $layer) {
             $fullList->merge($layer->getCMSFields());
-//            $scaffolder = FormScaffolder::create($layer);
-//            $scaffolded = $scaffolder->getFieldList();
-//            $fullList->merge($scaffolded);
         }
         return $fullList;
     }
