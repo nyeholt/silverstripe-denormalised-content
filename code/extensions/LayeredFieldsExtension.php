@@ -4,7 +4,7 @@
 /**
  * @author marcus
  */
-class LayeredFieldsExtension extends Extension {
+class LayeredFieldsExtension extends DataExtension {
     protected $layers;
     
     public function getLayers() {
@@ -22,5 +22,15 @@ class LayeredFieldsExtension extends Extension {
         return $this->layers;
         
         return $allLayers;
+    }
+
+    public function updateCMSFields(\FieldList $fields)
+    {
+        $layers = $this->owner->getLayers();
+
+        foreach ($layers as $l) {
+//            $fields->addFieldsToTab($l->getName(), $l->getCMSFields());
+            $fields->addFieldsToTab('Root.Added', $l->getCMSFields());
+        }
     }
 }
