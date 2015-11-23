@@ -25,6 +25,13 @@ class FlatLayer extends ViewableData
         return $this->name;
     }
 
+    public function getCMSFields()
+    {
+        $scaffolder = FormScaffolder::create($this);
+        return $scaffolder->getFieldList();
+    }
+
+
     public function db($fieldName = null)
     {
         return LayerManager::layer_db(get_class($this), $this->name, $fieldName);
@@ -62,12 +69,6 @@ class FlatLayer extends ViewableData
             return $this->config[$name];
         }
         return $default;
-    }
-
-    public function getCMSFields()
-    {
-        $scaffolder = FormScaffolder::create($this);
-        return $scaffolder->getFieldList();
     }
 
     /**

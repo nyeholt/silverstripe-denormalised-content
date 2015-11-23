@@ -27,7 +27,6 @@ class LayerManager
 
     public static function layer_db($classType, $layerName, $fieldName = null)
     {
-
         $classes = ClassInfo::ancestry($classType, false);
 
         // If we're looking for a specific field, we want to hit subclasses first as they may override field types
@@ -196,9 +195,10 @@ class LayerManager
 
         $fullList = FieldList::create();
         foreach ($layers as $layer) {
-            $scaffolder = FormScaffolder::create($layer);
-            $scaffolded = $scaffolder->getFieldList();
-            $fullList->merge($scaffolded);
+            $fullList->merge($layer->getCMSFields());
+//            $scaffolder = FormScaffolder::create($layer);
+//            $scaffolded = $scaffolder->getFieldList();
+//            $fullList->merge($scaffolded);
         }
         return $fullList;
     }
