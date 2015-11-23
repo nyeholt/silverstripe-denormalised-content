@@ -175,29 +175,36 @@ class FlatLayer extends ViewableData
         return $this->dbFields;
     }
 
-    public function has_one($component = null)
+    public function hasOne()
     {
         $spec = LayerManager::layer_relationships(get_class($this), $this->name);
         $rels = $spec['has_one'];
 
-        if ($component && isset($rels[$component])) {
-            return $rels[$component];
-        }
         return $rels;
     }
 
-    public function many_many($component = null)
+    public function hasOneComponent($component) {
+        $ones = $this->hasOne();
+        if ($component && isset($ones[$component])) {
+            return $ones[$component];
+        }
+    }
+
+    public function manyMany()
     {
         $spec = LayerManager::layer_relationships(get_class($this), $this->name);
         $rels = $spec['many_many'];
-
-        if ($component && isset($rels[$component])) {
-            return $rels[$component];
-        }
         return $rels;
     }
 
-    public function has_many()
+    public function manyManyComponent($component = null) {
+        $rels = $this->manyMany();
+        if ($component && isset($rels[$component])) {
+            return $rels[$component];
+        }
+    }
+
+    public function hasMany()
     {
         
     }
@@ -212,7 +219,7 @@ class FlatLayer extends ViewableData
             return $obj;
 
             // Special case for has_one relationships
-        } else if (preg_match('/ID$/', $fieldName) && $this->has_one(substr($fieldName, 0, -2))) {
+        } else if (preg_match('/ID$/', $fieldName) && $this->hasOne(substr($fieldName, 0, -2))) {
             $val = $this->$fieldName;
             return DBField::create_field('ForeignKey', $val, $fieldName, $this);
         }

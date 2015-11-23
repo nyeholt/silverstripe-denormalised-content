@@ -1,8 +1,6 @@
 <?php
 
 /**
- * Description of GalleryLayer
- *
  * @author marcus
  */
 class GalleryLayer extends FlatLayer

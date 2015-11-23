@@ -159,12 +159,12 @@ class LayerManager
         $rels   = array('has_one' => array(), 'many_many' => array());
 
         foreach ($layers as $l) {
-            $ones = $l->has_one();
+            $ones = $l->hasOne();
             foreach ($ones as $name => $relatedType) {
                 $rels['has_one'][$name] = $relatedType;
             }
 
-            $many = $l->many_many();
+            $many = $l->manyMany();
             foreach ($many as $name => $relatedType) {
                 $rels['many_many'][$name] = $relatedType;
             }
