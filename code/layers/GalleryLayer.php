@@ -13,8 +13,9 @@ class GalleryLayer extends FlatLayer
 
     public function getCMSFields()
     {
-        $fields = parent::getCMSFields();
-
+        $fields = FieldList::create(array(
+            UploadField::create($this->fullFieldName('Images'), 'Images', $this->Images())
+        ));
         return $fields;
     }
 }

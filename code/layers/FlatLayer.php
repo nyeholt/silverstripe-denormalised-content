@@ -59,6 +59,8 @@ class FlatLayer extends ViewableData
     {
         $scaffolder                   = FormScaffolder::create($this);
         $scaffolder->includeRelations = true;
+        $scaffolder->ajaxSafe         = true;
+        
         return $scaffolder->getFieldList();
     }
 
@@ -133,7 +135,15 @@ class FlatLayer extends ViewableData
     public function __call($method, $arguments)
     {
         if ($this->dataSource && $this->dataSource->ID) {
-            return $this->dataSource->__call($method, $arguments);
+
+            $name = $this->realisedName.LayerManager::FIELD_SEPARATOR.$method;
+            if ($this->dataSource->hasMethod($name)) {
+                return $this->dataSource->__call($name, $arguments);
+            }
+
+            if ($this->dataSource->hasMethod($method)) {
+                return $this->dataSource->__call($method, $arguments);
+            }
         }
 
         parent::__call($method, $arguments);
