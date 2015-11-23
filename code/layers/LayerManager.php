@@ -12,6 +12,19 @@ class LayerManager
     protected static $_cache_layers_db   = array();
     protected static $_cache_layers_rels = array();
 
+    public static function init_layers($classType)
+    {
+        $extraDb            = LayerManager::db_for_layers($classType);
+        Config::inst()->update($classType, 'db', $extraDb);
+        $extraRels          = LayerManager::rels_for_layers($classType);
+        if (count($extraRels['has_one'])) {
+            Config::inst()->update($classType, 'has_one', $extraRels['has_one']);
+        }
+        if (count($extraRels['many_many'])) {
+            Config::inst()->update($classType, 'many_many', $extraRels['many_many']);
+        }
+    }
+
     public static function layer_db($classType, $layerName, $fieldName = null)
     {
 
@@ -129,7 +142,7 @@ class LayerManager
             return self::$_cache_layers_rels[$type];
         }
         $layers = self::layers_for($type);
-        $rels = array('has_one' => array(), 'many_many' => array());
+        $rels   = array('has_one' => array(), 'many_many' => array());
 
         foreach ($layers as $l) {
             $ones = $l->has_one();
