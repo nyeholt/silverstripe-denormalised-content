@@ -29,8 +29,7 @@ class LayeredFieldsExtension extends DataExtension {
         $layers = $this->owner->getLayers();
 
         foreach ($layers as $l) {
-//            $fields->addFieldsToTab($l->getName(), $l->getCMSFields());
-            $fields->addFieldsToTab('Root.Added', $l->getCMSFields());
+            $fields->addFieldsToTab('Root.' . $l->getFriendlyName(), $l->getCMSFields());
         }
     }
 }

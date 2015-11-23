@@ -16,8 +16,18 @@ class LayerManager
     {
         $allTypes = func_get_args();
         foreach ($allTypes as $classType) {
-            $extraDb   = LayerManager::db_for_layers($classType);
-            Config::inst()->update($classType, 'db', $extraDb);
+            // In an ideal world, we'd recursively generate a collated set of DB Fields from all
+            // of our related layers. HOWEVER - we can't create an object of type $classType, because
+            // the act of doing so is what binds all the extra methods pertinent to our relationships - which haven't
+            // been defined yet. So we _need_ to do it using just the string representation of the
+            // classname instead.
+            
+//            $sng = singleton($classType);
+//            foreach ($sng->getLayers() as $l) {
+//                $allDb = array_merge($allDb, $l->collatedDb());
+//            }
+            $allDb   = LayerManager::db_for_layers($classType);
+            Config::inst()->update($classType, 'db', $allDb);
             $extraRels = LayerManager::rels_for_layers($classType);
             if (count($extraRels['has_one'])) {
                 Config::inst()->update($classType, 'has_one', $extraRels['has_one']);
@@ -28,7 +38,7 @@ class LayerManager
         }
     }
 
-    public static function layer_db($classType, $layerName, $fieldName = null)
+    public static function layer_db($classType, $layerName, $fieldName = null, $includeLayers = true)
     {
         $classes = ClassInfo::ancestry($classType, false);
 
@@ -49,12 +59,14 @@ class LayerManager
                     $dbItems[$layerName.self::FIELD_SEPARATOR.$key] = $val;
                 }
 
-                // check for any contained layers in the class, and load for them too
-                $layersDb = self::db_for_layers($class);
-                foreach ($layersDb as $lName => $lTitle) {
-                    $dbItems[$layerName.self::FIELD_SEPARATOR.$lName] = $lTitle;
+                if ($includeLayers) {
+                    // check for any contained layers in the class, and load for them too
+                    $layersDb = self::db_for_layers($class);
+                    foreach ($layersDb as $lName => $lTitle) {
+                        $dbItems[$layerName.self::FIELD_SEPARATOR.$lName] = $lTitle;
+                    }
                 }
-
+                
                 self::$_cache_db[$cacheKey] = $dbItems;
             }
 

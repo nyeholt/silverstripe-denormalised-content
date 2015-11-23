@@ -5,56 +5,33 @@
  */
 class FlatLayer extends ViewableData
 {
-
-    private static $source_vals = array('ID', 'LastEdited', 'Created');
-
-    private static $virtual_db = array(
+    private static $source_vals       = array('ID', 'LastEdited', 'Created');
+    private static $virtual_db        = array(
         'Title' => 'Varchar(255)',
     );
-    private static $virtual_layers = array();
-    private static $virtual_has_one = array();
+    private static $virtual_layers    = array();
+    private static $virtual_has_one   = array();
     private static $virtual_many_many = array();
-    
-    protected $dataSource = null;
-
+    protected $dataSource             = null;
     protected $name;
-    
-    protected $config = array();
-
+    protected $config                 = array();
     protected $realisedName;
-
     protected $layers;
 
     public function __construct($name, $dataSource)
     {
-        $this->name = $name;
+        $this->name         = $name;
         $this->realisedName = $name;
-        $this->dataSource = $dataSource;
+        $this->dataSource   = $dataSource;
         parent::__construct();
     }
 
-    public function setRealisedName($path) {
-        $this->realisedName = $path;
-    }
-
-    public function getRealisedName() {
-        return $this->realisedName;
-    }
-
-    public function getLayers() {
+    public function getLayers()
+    {
         if (!$this->layers) {
             $this->layers = LayerManager::layers_for($this, $this->dataSource);
-
-            // can we inflate? Do so if we can
-//            if ($this->dataSource && $this->dataSource->ID) {
-//                $definedFields = $this->db();
-//                foreach ($definedFields as $name => $type) {
-//                    //grab out of our data source if specified
-//                    $v = $this->dataSource->$name;
-//                }
-//            }
         }
-        
+
         return $this->layers;
     }
 
@@ -63,13 +40,27 @@ class FlatLayer extends ViewableData
         return $this->name;
     }
 
+    public function getFriendlyName()
+    {
+        return preg_replace('/_(\d+)/', '', $this->name);
+    }
+
+    public function setRealisedName($path)
+    {
+        $this->realisedName = $path;
+    }
+
+    public function getRealisedName()
+    {
+        return $this->realisedName;
+    }
+
     public function getCMSFields()
     {
-        $scaffolder = FormScaffolder::create($this);
+        $scaffolder                   = FormScaffolder::create($this);
         $scaffolder->includeRelations = true;
         return $scaffolder->getFieldList();
     }
-
 
     public function setConfig($name, $value)
     {
@@ -84,6 +75,10 @@ class FlatLayer extends ViewableData
         return $default;
     }
 
+    public function fullFieldName($field)
+    {
+        return $this->realisedName.LayerManager::FIELD_SEPARATOR.$field;
+    }
 
     public function fieldLabel($field)
     {
@@ -91,15 +86,20 @@ class FlatLayer extends ViewableData
         return array_pop($bits);
     }
 
-
-    public function loadData() {
-        
-    }
-
+    /**
+     * Proxy the field requests to the underlying data source
+     *
+     * @param mixed $property
+     * @return mixed
+     */
     public function __get($property)
     {
         if ($this->dataSource && $this->dataSource->ID) {
-            $name = $this->realisedName . LayerManager::FIELD_SEPARATOR . $property;
+            // check for the fully realised field name
+            $name = strpos($property, LayerManager::FIELD_SEPARATOR) ?
+                $property :
+                $this->realisedName.LayerManager::FIELD_SEPARATOR.$property;
+
             $val = $this->dataSource->__get($name);
             if ($val) {
                 return $val;
@@ -110,6 +110,7 @@ class FlatLayer extends ViewableData
                 return $this->dataSource->$name();
             }
 
+            // otherwise, just send the base property reference through
             $val = $this->dataSource->__get($property);
             if ($val) {
                 return $val;
@@ -117,11 +118,14 @@ class FlatLayer extends ViewableData
         }
         return parent::__get($property);
     }
-    
+
     public function __set($property, $value)
     {
         if ($this->dataSource && $this->dataSource->ID) {
-            $name = $this->realisedName . LayerManager::FIELD_SEPARATOR . $property;
+            $name = strpos($property, LayerManager::FIELD_SEPARATOR) ?
+                $property :
+                $this->realisedName.LayerManager::FIELD_SEPARATOR.$property;
+
             $this->dataSource->$name = $value;
         }
     }
@@ -129,30 +133,31 @@ class FlatLayer extends ViewableData
     public function __call($method, $arguments)
     {
         if ($this->dataSource && $this->dataSource->ID) {
-//            $name = $this->realisedName . LayerManager::FIELD_SEPARATOR . $method;
             return $this->dataSource->__call($method, $arguments);
         }
 
         parent::__call($method, $arguments);
     }
 
-    public function getComponent($componentName) {
+    public function getComponent($componentName)
+    {
         if ($this->dataSource && $this->dataSource->ID) {
-            $name = $this->realisedName . LayerManager::FIELD_SEPARATOR . $componentName;
+            $name = strpos($componentName, LayerManager::FIELD_SEPARATOR) ?
+                $componentName :
+                $this->realisedName.LayerManager::FIELD_SEPARATOR.$componentName;
+
             return $this->dataSource->getComponent($name);
         }
     }
-
     /**
      * DataObject mimicking below. Be _VERY_ careful about what you change down here!
      */
-
     protected $dbFields;
 
     public function db($fieldName = null)
     {
         if (!$this->dbFields) {
-            $this->dbFields = LayerManager::layer_db(get_class($this), $this->name);
+            $this->dbFields = LayerManager::layer_db(get_class($this), $this->getRealisedName());
         }
         if ($fieldName) {
             return isset($this->dbFields[$fieldName]) ? $this->dbFields[$fieldName] : null;
@@ -171,7 +176,8 @@ class FlatLayer extends ViewableData
         return $rels;
     }
 
-    public function many_many($component = null) {
+    public function many_many($component = null)
+    {
         $spec = LayerManager::layer_relationships(get_class($this), $this->name);
         $rels = $spec['many_many'];
 
@@ -181,11 +187,10 @@ class FlatLayer extends ViewableData
         return $rels;
     }
 
-
-    public function has_many() {
+    public function has_many()
+    {
         
     }
-
 
     /**
      */
@@ -193,7 +198,7 @@ class FlatLayer extends ViewableData
     {
         if ($helper = $this->db($fieldName)) {
             $obj = Object::create_from_string($helper, $fieldName);
-            $obj->setValue($this->$fieldName, $this->record, false);
+            $obj->setValue($this->$fieldName, $this->dataSource, false);
             return $obj;
 
             // Special case for has_one relationships
@@ -202,5 +207,4 @@ class FlatLayer extends ViewableData
             return DBField::create_field('ForeignKey', $val, $fieldName, $this);
         }
     }
-
 }
